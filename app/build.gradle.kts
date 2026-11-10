@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-   // namespace = "com.kavabanga.alarmapp" // ЗАМЕНИТЕ НА ВАШ PACKAGE (например com.mycompany.alarm)
+   // namespace = "com.kavabanga.alarmapp"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.kavabanga.alarmapp" // ЗАМЕНИТЕ НА ВАШ PACKAGE
+        applicationId = "com.kavabanga.alarmapp"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
