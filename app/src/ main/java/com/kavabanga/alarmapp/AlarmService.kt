@@ -1,4 +1,4 @@
-package com.example.alarmapp
+package com.kavabanga.alarmapp
 
 import android.app.*
 import android.content.Intent
@@ -24,7 +24,7 @@ class AlarmService : Service() {
     private var snoozeUntil = 0L 
 
     companion object {
-        const val ACTION_MUTE = "com.example.alarmapp.ACTION_MUTE"
+        const val ACTION_MUTE = "com.kavabanga.alarmapp.ACTION_MUTE"
         const val EXTRA_MUTE_DURATION_MS = "mute_duration_ms"
     }
 
