@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-   // namespace = "com.kavabanga.alarmapp"
+    namespace = "com.kavabanga.alarmapp"
     compileSdk = 34
 
     defaultConfig {
