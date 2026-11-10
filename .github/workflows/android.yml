@@ -3,8 +3,6 @@ name: Android CI (Автосборка APK)
 on:
   push:
     branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
   workflow_dispatch:
 
 jobs:
@@ -12,34 +10,70 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Скачиваем код (обновлено до v5 для поддержки Node 24+)
     - name: Checkout project code
       uses: actions/checkout@v5
 
-    # 2. Устанавливаем Java (перешли на v5, убирает варнинг о депрекации)
+    # НОВЫЙ ШАГ: Принудительное уничтожение скрытых копий и генерация чистого манифеста
+    - name: Force Clean and Recreate Manifest
+      run: |
+        echo "Удаляем все существующие файлы манифеста, чтобы избавиться от скрытых дубликатов..."
+        find . -name "AndroidManifest.xml" -exec rm -f {} +
+        
+        echo "Создаем структуру папок для правильного манифеста..."
+        mkdir -p app/src/main
+        
+        echo "Записываем чистый валидный манифест без ошибок..."
+        cat << 'EOF' > app/src/main/AndroidManifest.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://android.com">
+            <uses-permission android:name="android.permission.INTERNET" />
+            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+            <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+            <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+            <application
+                android:allowBackup="true"
+                android:label="Серверная Тревога"
+                android:supportsRtl="true">
+                <service
+                    android:name=".AlarmService"
+                    android:enabled="true"
+                    android:exported="false"
+                    android:foregroundServiceType="specialUse" />
+                <receiver
+                    android:name=".AlarmMuteReceiver"
+                    android:exported="false" />
+                <receiver
+                    android:name=".BootReceiver"
+                    android:enabled="true"
+                    android:exported="false">
+                    <intent-filter>
+                        <action android:name="android.intent.action.BOOT_COMPLETED" />
+                        <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                    </intent-filter>
+                </receiver>
+            </application>
+        </manifest>
+        EOF
+        echo "Новый Манифест успешно создан!"
+
     - name: set up JDK 17
       uses: actions/setup-java@v5
       with:
         java-version: '17'
         distribution: 'temurin'
 
-    # 3. Генерируем Gradle Wrapper, если его нет в репозитории
     - name: Generate Gradle Wrapper
       run: |
         if [ ! -f "gradlew" ]; then
-          echo "Gradlew not found. Generating wrapper..."
           gradle wrapper --gradle-version 8.5
         fi
 
-    # 4. Даем права на запуск скрипта сборщика
     - name: Grant execute permissions for gradlew
       run: chmod +x gradlew
 
-    # 5. Компилируем проект
     - name: Build Debug APK
       run: ./gradlew assembleDebug
 
-    # 6. Сохраняем готовый файл (обновлено до v5 для стабильной работы)
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v5
       with:
