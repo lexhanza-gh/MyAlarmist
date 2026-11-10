@@ -12,5 +12,9 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "AlarmApp"
+
+// Название вашего проекта в Android Studio
+rootProject.name = "MyAlarmist"
+
+// Включение модуля приложения (папки app) в сборку
 include(":app")
