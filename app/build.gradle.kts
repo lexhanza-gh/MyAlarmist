@@ -4,6 +4,7 @@ plugins {
 }
 
 android {
+    // Двойные кавычки и знак равенства строго обязательны!
     namespace = "com.kavabanga.alarmapp"
     compileSdk = 34
 
@@ -18,7 +19,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
@@ -31,7 +35,8 @@ android {
 }
 
 dependencies {
-    // Базовые зависимости для работы Android-сервисов и Kotlin
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.11.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
