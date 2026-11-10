@@ -14,7 +14,8 @@ dependencyResolutionManagement {
 }
 
 // Название вашего проекта в Android Studio
-rootProject.name = "MyAlarmist"
+//rootProject.name = "MyAlarmist"
+rootProject.name = "alarmapp"
 
 // Включение модуля приложения (папки app) в сборку
 include(":app")
