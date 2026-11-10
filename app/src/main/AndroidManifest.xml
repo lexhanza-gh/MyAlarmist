@@ -1,5 +1,4 @@
 <manifest xmlns:android="http://android.com">
-
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Для Android 14+ требуется указать тип сервиса -->
