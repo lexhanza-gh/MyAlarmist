@@ -1,1 +1,16 @@
-<service android:name=".AlarmService" android:enabled="true" android:exported="false" />
+<manifest xmlns:android="http://android.com"
+    package="com.kavabanga.alarmapp">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Для Android 14+ требуется указать тип сервиса -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <application ...>
+        <service
+            android:name=".AlarmService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse" />
+    </application>
+</manifest>
