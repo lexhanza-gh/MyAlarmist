@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://android.com">
+<manifest xmlns:android="http://android.com"
+          xmlns:tools="http://android.com">
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Для Android 14+ требуется указать тип сервиса -->
@@ -10,15 +12,18 @@
         android:label="Серверная Тревога"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+        tools:ignore="MissingApplicationIcon">
         
         <service
             android:name=".AlarmService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="specialUse" />
+            
         <receiver
             android:name=".AlarmMuteReceiver"
             android:exported="false" />
+            
     </application>
 </manifest>
