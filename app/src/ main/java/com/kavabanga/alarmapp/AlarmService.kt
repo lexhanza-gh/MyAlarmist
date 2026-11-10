@@ -142,21 +142,44 @@ class AlarmService : Service() {
         }
         startService(intent)
     }
+    
     private fun showTextNotification(title: String, message: String) {
         val channelId = "server_alerts"
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        
         val channel = NotificationChannel(channelId, "Alerts", NotificationManager.IMPORTANCE_HIGH)
         manager.createNotificationChannel(channel)
-
+    
+        // 1. Создаем намерение, которое сработает при клике на кнопку приглушения
+        val muteIntent = Intent(this, AlarmMuteReceiver::class.java)
+        
+        // Флаг IMMUTABLE обязателен в современных версиях Android для безопасности
+        val mutePendingIntent = PendingIntent.getBroadcast(
+            this, 
+            0, 
+            muteIntent, 
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    
+        // 2. Строим само уведомление с кнопкой действия
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle(title)
             .setContentText(message)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true) // Уведомление исчезнет, если на него нажать
+            // Добавляем кнопку: иконка (опционально), Текст кнопки, само действие
+            .addAction(
+                android.R.drawable.ic_media_volume_mute, 
+                "Приглушить на 15 мин", 
+                mutePendingIntent
+            )
             .build()
-
+    
+        // Отправляем пуш на экран
         manager.notify(System.currentTimeMillis().toInt(), notification)
     }
+
 
     private fun startForegroundServiceNotification(statusText: String) {
         val channelId = "service_channel"
