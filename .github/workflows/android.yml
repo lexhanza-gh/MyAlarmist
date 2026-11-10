@@ -1,4 +1,4 @@
-name: Android CI (Автосборка APK)
+name: Android CI (Полная очистка и сборка APK)
 
 on:
   push:
@@ -13,16 +13,18 @@ jobs:
     - name: Checkout project code
       uses: actions/checkout@v5
 
-    # НОВЫЙ ШАГ: Принудительное уничтожение скрытых копий и генерация чистого манифеста
-    - name: Force Clean and Recreate Manifest
+    # ШАГ ОЧИСТКИ: Вырезаем устаревший синтаксис package из всех конфигурационных файлов проекта
+    - name: Fix Package Attribute in Gradle Files
       run: |
-        echo "Удаляем все существующие файлы манифеста, чтобы избавиться от скрытых дубликатов..."
+        echo "Ищем и удаляем строки с 'package=' в файлах build.gradle..."
+        find . -name "*.gradle" -exec sed -i '/package\s*=/d' {} +
+        find . -name "*.gradle.kts" -exec sed -i '/package\s*=/d' {} +
+        
+        echo "Удаляем все существующие манифесты..."
         find . -name "AndroidManifest.xml" -exec rm -f {} +
         
-        echo "Создаем структуру папок для правильного манифеста..."
+        echo "Генерируем один чистый эталонный манифест..."
         mkdir -p app/src/main
-        
-        echo "Записываем чистый валидный манифест без ошибок..."
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://android.com">
@@ -54,7 +56,7 @@ jobs:
             </application>
         </manifest>
         EOF
-        echo "Новый Манифест успешно создан!"
+        echo "Очистка и подготовка файлов завершена!"
 
     - name: set up JDK 17
       uses: actions/setup-java@v5
