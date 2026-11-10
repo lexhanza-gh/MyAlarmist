@@ -132,7 +132,16 @@ class AlarmService : Service() {
         }
         mediaPlayer = null
     }
-
+    
+    // Функция для вызова из клика по кнопке "Приглушить на 15 минут"
+    fun muteAlarmForFifteenMinutes() {
+        val intent = Intent(this, AlarmService::class.java).apply {
+            action = AlarmService.ACTION_MUTE
+            // 15 минут в миллисекундах: 15 * 60 * 1000
+            putExtra(AlarmService.EXTRA_MUTE_DURATION_MS, 15L * 60L * 1000L) 
+        }
+        startService(intent)
+    }
     private fun showTextNotification(title: String, message: String) {
         val channelId = "server_alerts"
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
