@@ -37,6 +37,17 @@ jobs:
     - name: Grant execute permissions for gradlew
       run: chmod +x gradlew
 
+    - name: Process Debug Manifest
+      run: ./gradlew :app:processDebugManifest --info --stacktrace
+
+    - name: Upload Merged Manifest
+      if: always() # Загрузит файл, даже если предыдущий шаг упал с ошибкой
+      uses: actions/upload-artifact@v4
+      with:
+        name: merged-debug-manifest
+        path: app/build/intermediates/merged_manifests/debug/processDebugManifest/AndroidManifest.xml
+
+
     # 5. Компилируем проект
     - name: Build Debug APK
       run: ./gradlew assembleDebug
