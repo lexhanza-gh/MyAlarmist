@@ -42,10 +42,16 @@ jobs:
 
     - name: Upload Merged Manifest
       if: always() # Загрузит файл, даже если предыдущий шаг упал с ошибкой
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: merged-debug-manifest
-        path: app/build/intermediates/merged_manifests/debug/processDebugManifest/AndroidManifest.xml
+        path: |
+          app/build/intermediates/merged_manifests/debug/processDebugManifest/AndroidManifest.xml
+          app/build/intermediates/**/AndroidManifest.xml
+          app/build/intermediates/merged_manifest/**/AndroidManifest.xml
+          app/build/intermediates/packaged_manifests/**/AndroidManifest.xml
+        if-no-files-found: warn # Не ронять сборку, если какой-то из путей не создался
+
 
 
     # 5. Компилируем проект
