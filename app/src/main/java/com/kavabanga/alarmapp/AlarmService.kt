@@ -119,7 +119,7 @@ class AlarmService : Service() {
     }
 
     private fun startWebSocket() {
-        val request = Request.Builder().url("wss://://your-server.com").build()
+        val request = Request.Builder().url("wss://your-server.com").build()
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             
             override fun onMessage(webSocket: WebSocket, text: String) {
