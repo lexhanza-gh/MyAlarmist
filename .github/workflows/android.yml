@@ -8,7 +8,7 @@ on:
     branches: [ "main", "master" ]
   # Позволяет запускать сборку вручную через вкладку Actions на GitHub
   workflow_dispatch:
-/
+
 jobs:
   build:
     runs-on: ubuntu-latest
