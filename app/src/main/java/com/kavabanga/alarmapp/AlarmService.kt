@@ -9,6 +9,10 @@ import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import okhttp3.*
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
+import android.Manifest
 
 class AlarmService : Service() {
 
@@ -77,6 +81,16 @@ class AlarmService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                // Если разрешения нет, перенаправляем пользователя прямо в настройки этого приложения
+                val intent = android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                    putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName)
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(intent)
+            }
+        }
         startForegroundServiceNotification("Мониторинг сервера запущен")
         startWebSocket()
         handler.post(watchdogRunnable)
