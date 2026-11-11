@@ -8,12 +8,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application        
-        android:icon="@mipmap/ic_launcher"
         android:label="Серверная Тревога"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-        tools:ignore="MissingApplicationIcon">
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         
         <service
             android:name=".AlarmService"
