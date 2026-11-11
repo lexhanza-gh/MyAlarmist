@@ -81,14 +81,30 @@ class AlarmService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        // Этот код нужно вызвать в самом начале onCreate() или onStartCommand()
+        val channelId = "alarm_service_channel"
+        
+        // 1. Создаем канал уведомлений (ОБЯЗАТЕЛЬНО для Android 8.0+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Фоновая работа службы тревоги",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Уведомления о работе серверной тревоги"
+            }
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+        
+        // 2. Проверяем разрешение. Если его нет — перекидываем пользователя в настройки
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                // Если разрешения нет, перенаправляем пользователя прямо в настройки этого приложения
-                val intent = android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                    putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName)
-                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                val settingsIntent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                startActivity(intent)
+                startActivity(settingsIntent)
             }
         }
         startForegroundServiceNotification("Мониторинг сервера запущен")
