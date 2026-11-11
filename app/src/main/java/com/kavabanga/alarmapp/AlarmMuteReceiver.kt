@@ -1,4 +1,4 @@
-package com.kavabanaga.alarmapp
+package com.kavabanga.alarmapp
 
 import android.content.BroadcastReceiver
 import android.content.Context
