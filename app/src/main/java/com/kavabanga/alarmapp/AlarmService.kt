@@ -170,7 +170,8 @@ class AlarmService : Service() {
             .setAutoCancel(true) // Уведомление исчезнет, если на него нажать
             // Добавляем кнопку: иконка (опционально), Текст кнопки, само действие
             .addAction(
-                android.R.drawable.ic_media_volume_mute, 
+//                android.R.drawable.ic_media_volume_mute, 
+                android.R.drawable.ic_lock_silent_mode_off,
                 "Приглушить на 15 мин", 
                 mutePendingIntent
             )
