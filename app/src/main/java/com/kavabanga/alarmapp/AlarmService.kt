@@ -1,22 +1,37 @@
 package com.kavabanga.alarmapp
 
-import android.app.*
+import android.Manifest
 import android.content.Intent
-import android.media.MediaPlayer
-import android.media.RingtoneManager
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import androidx.core.app.NotificationCompat
-import okhttp3.*
-import android.Manifest
-import android.os.Build
-import android.content.pm.PackageManager
-import android.content.Context
 import android.provider.Settings
+import android.util.Log
+import android.media.MediaPlayer
+import android.media.RingtoneManager
+import android.media.AudioAttributes
+import android.app.*
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import okhttp3.*
+
+/*
+Развернуто вместо звёздочек
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
+*/
 
 
 
@@ -32,142 +47,156 @@ class AlarmService : Service() {
 
     // Временная метка, до которой действует режим тишины
     private var snoozeUntil = 0L 
+	// Переменная для хранения задачи возврата из режима тишины
+	private var unmuteRunnable: Runnable? = null
 
     companion object {
+		const val serverUrl = "wss://your-server.com" 
         const val ACTION_MUTE = "com.kavabanga.alarmapp.ACTION_MUTE"
         const val EXTRA_MUTE_DURATION_MS = "mute_duration_ms"
+		const val CHANNEL_STATUS_ID = "service_status_channel"
+        const val CHANNEL_ALARM_ID = "alarm_alert_channel"
+        const val FOREGROUND_NOTIFICATION_ID = 1
+        const val ALARM_NOTIFICATION_ID = 2
+        private const val TAG = "AlarmService"
     }
 
-    // Обработка команд приглушения (из Activity или уведомлений)
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_MUTE) {
-            // Получаем интервал приглушения (по умолчанию 5 минут)
-            val duration = intent.getLongExtra(EXTRA_MUTE_DURATION_MS, 5 * 60 * 1000L)
-            muteAlarm(duration)
-        }
-        return START_STICKY
-    }
 
-    private fun muteAlarm(durationMs: Long) {
-        // Задаем время, до которого тревога выключена
-        snoozeUntil = System.currentTimeMillis() + durationMs
-        
-        // Выключаем звук, если он играет прямо сейчас
-        stopAlarmSound()
-        
-        // Обновляем статусное уведомление, чтобы пользователь видел, сколько осталось молчать
-        val minutes = durationMs / 1000 / 60
-        startForegroundServiceNotification("В режиме тишины на $minutes мин.")
-        
-        // Планируем возврат в нормальный режим (обновление статус-бара) по истечении таймера
-        handler.postDelayed({
-            if (System.currentTimeMillis() >= snoozeUntil) {
-                startForegroundServiceNotification("Мониторинг сервера запущен")
-            }
-        }, durationMs)
-    }
+/* ----------------------------------------------------------------------------------------------
+// 						БЛОК УПРАВЛЕНИЯ СООБЩЕНИЯМИ И ТРЕВОГОЙ
+---------------------------------------------------------------------------------------------- */
 
-    // Проверяем, находится ли приложение в режиме тишины прямо сейчас
-    private fun isMuted(): Boolean {
-        return System.currentTimeMillis() < snoozeUntil
-    }
-
-    // Обновленный таймер проверки связи
-    private val watchdogRunnable = object : Runnable {
-        override fun run() {
-            if (System.currentTimeMillis() - lastPingTime > PING_TIMEOUT) {
-                if (!isMuted()) {
-                    triggerAlarm("Потеряна связь с сервером!")
-                }
-            }
-            // Продолжаем проверять каждые 5 секунд в любом случае
-            handler.postDelayed(this, 5000) 
-        }
-    }
-
-    override fun onCreate() {
-        super.onCreate()
-        // Этот код нужно вызвать в самом начале onCreate() или onStartCommand()
-        val channelId = "alarm_service_channel"
-        
+    private fun createNotificationChannels() {
+		
         // 1. Создаем канал уведомлений (ОБЯЗАТЕЛЬНО для Android 8.0+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Фоновая работа службы тревоги",
-                NotificationManager.IMPORTANCE_HIGH
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            // Тихий канал для фоновой работы
+            val statusChannel = NotificationChannel(
+                CHANNEL_STATUS_ID,
+                "Статус фоновой службы",
+                NotificationManager.IMPORTANCE_MIN // Без звука и всплывающих окон, Минимальный приоритет скрывает иконку вверху экрана
             ).apply {
-                description = "Уведомления о работе серверной тревоги"
+                description = "Показывает, что мониторинг активен"
+				setShowBadge(false) // Убирает точку уведомления с иконки приложения
             }
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+
+            // Громкий канал для самой тревоги
+            val alarmChannel = NotificationChannel(
+                CHANNEL_ALARM_ID,
+                "Экстренные тревоги",
+                NotificationManager.IMPORTANCE_HIGH // Со звуком и баннером поверх экрана
+            ).apply {
+                description = "Громкие уведомления при срабатывании тревоги"
+                enableVibration(true)
+            }
+
+
+            // manager.createNotificationChannel(serviceChannel)
+            // manager.createNotificationChannel(alertsChannel)
+			// ??
+            manager.createNotificationChannels(listOf(statusChannel, alarmChannel))
         }
+    }
+
+    private fun startForegroundServiceNotification(statusText: String) {
+        val notification = NotificationCompat.Builder(this, CHANNEL_STATUS_ID)
+            .setContentTitle("Служба мониторинга")
+            .setContentText(statusText)
+            .setSmallIcon(android.R.drawable.ic_lock_silent_mode_off) // Замените на вашу иконку
+            .setOngoing(true) // Запрещает пользователю смахнуть уведомление
+			.setSilent(true) // Гарантирует отсутствие звука и вибрации
+			.setPriority(NotificationCompat.PRIORITY_MIN)			
+            .build()
+        startForeground(FOREGROUND_NOTIFICATION_ID, notification)
+    }
+
+    // Вызывайте этот метод, когда придет реальная тревога
+    private fun showAlarmNotification(alarmTitle: String, alarmMessage: String) {
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        // 1. Создаем намерение, которое сработает при клике на кнопку приглушения
+        val muteIntent = Intent(this, AlarmMuteReceiver::class.java)
         
-        // 2. Проверяем разрешение. Если его нет — перекидываем пользователя в настройки
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                val settingsIntent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                    putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                startActivity(settingsIntent)
-            }
-        }
-        startForegroundServiceNotification("Мониторинг сервера запущен")
-        startWebSocket()
-        handler.post(watchdogRunnable)
+        // Флаг IMMUTABLE обязателен в современных версиях Android для безопасности
+        val mutePendingIntent = PendingIntent.getBroadcast(this, 0, muteIntent, 
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        ) 
+ 
+        // 2. Строим само уведомление с кнопкой действия
+        val alarmNotification = NotificationCompat.Builder(this, CHANNEL_ALARM_ID)
+            .setContentTitle(alarmTitle)
+            .setContentText(alarmMessage)
+            .setSmallIcon(android.R.drawable.ic_alarm) // Замените на иконку тревоги
+            .setPriority(NotificationCompat.PRIORITY_HIGH) // Для Android 7.1 и ниже
+            .setAutoCancel(true)// Уведомление исчезнет, если на него нажать
+            // Добавляем кнопку: иконка (опционально), Текст кнопки, само действие
+            .addAction(
+//              android.R.drawable.ic_media_volume_mute, 
+                android.R.drawable.ic_lock_silent_mode_off,
+                "Приглушить на 15 мин", 
+                mutePendingIntent
+            )
+            .build()
+			
+		// Отправляем пуш на экран
+        manager.notify(ALARM_NOTIFICATION_ID, alarmNotification)
     }
 
-    private fun startWebSocket() {
-        val request = Request.Builder().url("wss://your-server.com").build()
-        webSocket = client.newWebSocket(request, object : WebSocketListener() {
-            
-            override fun onMessage(webSocket: WebSocket, text: String) {
-                lastPingTime = System.currentTimeMillis() 
+	private fun triggerAlarm(message: String) {
+		// 1. Обязательно проверяем режим тишины!
+		if (isMuted()) {
+			// Можно просто показать тихое уведомление без звука или вообще проигнорировать
+			return 
+		}
 
-                // Даже если мы приглушены, мы обновляем lastPingTime, чтобы при выходе из тишины не сработал ложный watchdog
+		showAlarmNotification("ВНИМАНИЕ! ТРЕВОГА!",message)
 
-                when {
-                    text == "PING" -> { /* Игнорируем */ }
-                    text.startsWith("ALARM:") -> {
-                        val reason = text.substringAfter("ALARM:")
-                        if (!isMuted()) {
-                            triggerAlarm("ТРЕВОГА: $reason")
-                        }
-                    }
-                    text.startsWith("TEXT:") -> {
-                        val message = text.substringAfter("TEXT:")
-                        // Текстовые уведомления выводим ВСЕГДА, они не шумят бесконечно
-                        showTextNotification("Сообщение от сервера", message)
-                    }
-                }
-            }
-        })
-    }
+		// 2. Если сирена уже орет — не перезапускаем её заново
+		if (mediaPlayer?.isPlaying == true) return
 
-    private fun triggerAlarm(message: String) {
-        showTextNotification("ВНИМАНИЕ", message)
+		// Очищаем старый плеер, если он вдруг завис в памяти
+		stopAlarmSound()
 
-        if (mediaPlayer == null || !mediaPlayer!!.isPlaying) {
-            val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-            
-            mediaPlayer = MediaPlayer.create(this, alarmUri).apply {
-                isLooping = true
-                start()
-            }
-        }
-    }
+		val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+			?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
 
-    private fun stopAlarmSound() {
-        mediaPlayer?.let {
-            if (it.isPlaying) {
-                it.stop()
-            }
-            it.release()
-        }
-        mediaPlayer = null
-    }
+		// 3. Настраиваем плеер на канал БУДИЛЬНИКА (играет даже в беззвучном режиме)
+		try {
+			mediaPlayer = MediaPlayer().apply {
+				setAudioAttributes(
+					AudioAttributes.Builder()
+						.setUsage(AudioAttributes.USAGE_ALARM)
+						.setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+						.build()
+				)
+				setDataSource(this@AlarmService, alarmUri)
+				isLooping = true
+				prepare()
+				start()
+			}
+		} catch (e: Exception) {
+			e.printStackTrace()
+			mediaPlayer = null
+		} finally {
+		}
+	}
+
+	private fun stopAlarmSound() {
+		try {
+			mediaPlayer?.let {
+				if (it.isPlaying) {
+					it.stop()
+				}
+				it.release()
+			}
+		} catch (e: Exception) {
+			e.printStackTrace()
+		} finally {
+			mediaPlayer = null
+		}
+	}
     
     // Функция для вызова из клика по кнопке "Приглушить на 15 минут"
     fun muteAlarmForFifteenMinutes() {
@@ -178,59 +207,118 @@ class AlarmService : Service() {
         }
         startService(intent)
     }
-    
-    private fun showTextNotification(title: String, message: String) {
-        val channelId = "server_alerts"
-        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+	
+	private fun muteAlarm(durationMs: Long) {
+		// Задаем время, до которого тревога выключена
+		snoozeUntil = System.currentTimeMillis() + durationMs
+		// Выключаем звук, если он играет прямо сейчас
+		stopAlarmSound()
+
+		// Обновляем статусное уведомление, чтобы пользователь видел, сколько осталось молчать
+		val minutes = durationMs / 1000 / 60
+		startForegroundServiceNotification("В режиме тишины на $minutes мин.")
+
+		// Отменяем предыдущий таймер, если кнопку нажали повторно
+		unmuteRunnable?.let { handler.removeCallbacks(it) }
+
+        // Планируем возврат в нормальный режим (обновление статус-бара) по истечении таймера
+		unmuteRunnable = Runnable {
+			if (System.currentTimeMillis() >= snoozeUntil) {
+				startForegroundServiceNotification("Мониторинг сервера запущен")
+			}
+		}
+		handler.postDelayed(unmuteRunnable!!, durationMs)
+	}
+
+    // Проверяем, находится ли приложение в режиме тишины прямо сейчас
+    private fun isMuted(): Boolean {
+        return System.currentTimeMillis() < snoozeUntil
+    }
+
+/* ----------------------------------------------------------------------------------------------
+// 						КОНЕЦ БЛОКА УПРАВЛЕНИЯ ТРЕВОГОЙ
+---------------------------------------------------------------------------------------------- */
+
+
+/* ----------------------------------------------------------------------------------------------
+// 						БЛОК ЛОГИКИ ВЫПОЛНЕНИЯ
+---------------------------------------------------------------------------------------------- */
+
+    override fun onCreate() {
+        super.onCreate()
         
-        val channel = NotificationChannel(channelId, "Alerts", NotificationManager.IMPORTANCE_HIGH)
-        manager.createNotificationChannel(channel)
-    
-        // 1. Создаем намерение, которое сработает при клике на кнопку приглушения
-        val muteIntent = Intent(this, AlarmMuteReceiver::class.java)
+        // 1. Создаем оба канала один раз при старте сервиса
+        createNotificationChannels()
         
-        // Флаг IMMUTABLE обязателен в современных версиях Android для безопасности
-        val mutePendingIntent = PendingIntent.getBroadcast(
-            this, 
-            0, 
-            muteIntent, 
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-    
-        // 2. Строим само уведомление с кнопкой действия
-        val notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true) // Уведомление исчезнет, если на него нажать
-            // Добавляем кнопку: иконка (опционально), Текст кнопки, само действие
-            .addAction(
-//                android.R.drawable.ic_media_volume_mute, 
-                android.R.drawable.ic_lock_silent_mode_off,
-                "Приглушить на 15 мин", 
-                mutePendingIntent
-            )
-            .build()
-    
-        // Отправляем пуш на экран
-        manager.notify(System.currentTimeMillis().toInt(), notification)
+        // 2. Запускаем Foreground-режим на ТИХОМ канале
+        startForegroundServiceNotification("Мониторинг сервера запущен")
+        
+        startWebSocket()
+        handler.post(watchdogRunnable)
+    }
+	
+    // Обработка команд приглушения (из Activity или уведомлений)
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_MUTE) {
+            // Получаем интервал приглушения (по умолчанию 5 минут)
+            val duration = intent.getLongExtra(EXTRA_MUTE_DURATION_MS, 5 * 60 * 1000L)
+            muteAlarm(duration)
+        }
+        return START_STICKY
     }
 
 
-    private fun startForegroundServiceNotification(statusText: String) {
-        val channelId = "service_channel"
-        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val channel = NotificationChannel(channelId, "Status", NotificationManager.IMPORTANCE_LOW)
-        manager.createNotificationChannel(channel)
+    // Таймер проверки связи
+    private val watchdogRunnable = object : Runnable {
+        override fun run() {
+            if (System.currentTimeMillis() - lastPingTime > PING_TIMEOUT) {
+                if (!isMuted()) {
+                    triggerAlarm("Потеряна связь с сервером!")
+                }
+            }
+            // Продолжаем проверять каждые 5 секунд
+            handler.postDelayed(this, 5000) 
+        }
+    }
 
-        val notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Сервис контроля связи")
-            .setContentText(statusText)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .build()
+    private fun startWebSocket() {
+		
+        var request = null
+		try {
+			request = Request.Builder().url(serverUrl).build()
+		} catch (e: Exception) {
+            Log.e(TAG, "Некорректный URL сервера: $serverUrl", e)
+            return
+        }
 
-        startForeground(1, notification)
+        webSocket = client.newWebSocket(request, object : WebSocketListener() {
+            
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                // Даже если мы приглушены, мы обновляем lastPingTime, чтобы при выходе из тишины не сработал ложный watchdog
+                lastPingTime = System.currentTimeMillis() 
+				// Переключаемся в главный поток для безопасной работы со звуком и уведомлениями
+                handler.post {
+					when {
+						text == "PING" -> { /* Игнорируем */ }
+						text.startsWith("ALARM:") -> {
+							val reason = text.substringAfter("ALARM:")
+							if (!isMuted()) {
+								triggerAlarm("ТРЕВОГА: $reason")
+							}
+						}
+						text.startsWith("TEXT:") -> {
+							val message = text.substringAfter("TEXT:")
+							// Текстовые уведомления выводим ВСЕГДА, они не шумят бесконечно
+							showAlarmNotification("Сообщение от сервера", message)
+						}
+					}
+                }
+            }
+			override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                Log.e(TAG, "Ошибка WebSocket: ${t.message}")
+            }
+
+        })
     }
 
     override fun onDestroy() {
@@ -239,6 +327,14 @@ class AlarmService : Service() {
         stopAlarmSound()
         super.onDestroy()
     }
-
+	
     override fun onBind(intent: Intent?): IBinder? = null
+
+/* ----------------------------------------------------------------------------------------------
+// 						КОНЕЦ БЛОКА ЛОГИКИ
+---------------------------------------------------------------------------------------------- */
+
 }
+
+
+
