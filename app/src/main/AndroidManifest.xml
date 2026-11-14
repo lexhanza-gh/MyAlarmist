@@ -19,7 +19,7 @@
             android:name=".AlarmService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="specialUse" />
+            android:foregroundServiceType="remoteMessaging" />
             
         <receiver
             android:name=".AlarmMuteReceiver"
