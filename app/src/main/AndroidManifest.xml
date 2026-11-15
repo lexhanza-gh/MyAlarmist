@@ -13,7 +13,9 @@
     <application        
         android:label="Пищалка Катастроф"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+        android:usesCleartextTraffic="true"	 <!-- Enables ws:// and http:// globally -->          
+    >
         
         <service
             android:name=".AlarmService"
