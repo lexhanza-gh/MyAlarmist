@@ -28,8 +28,10 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       with:
-        packages: 'platforms;android-37 build-tools;36.0.0'
-        
+        packages: 'platforms;android-37.0 build-tools;36.0.0'
+    - name: Create symlink for Android 37
+      run: ln -s "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-37"
+      
     # 3. Генерируем Gradle Wrapper, если его нет в репозитории
     - name: Generate Gradle Wrapper
       run: |
