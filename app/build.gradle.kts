@@ -1,6 +1,6 @@
 plugins {
     id("com.android.application")
-// deprecated in AGP 9 (android gradle plugin)
+// Removed: Built into AGP 9.0+ (android gradle plugin) 
 //    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
@@ -35,6 +35,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
   // deprecated in AGP 9 (android gradle plugin)
+  // kotlinOptions block removed; AGP 9+ automatically inherits Java 17 from compileOptions
   //  kotlinOptions {
   //      jvmTarget = "17"
   //  }
