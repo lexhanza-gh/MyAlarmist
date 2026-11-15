@@ -37,8 +37,10 @@ jobs:
       run: |
         if [ ! -f "gradlew" ]; then
           echo "Gradlew not found. Generating wrapper..."
-          gradle wrapper --gradle-version 8.5
+           gradle wrapper --gradle-version 9.9.1
         fi
+        # old string         gradle wrapper --gradle-version 8.5
+
 
     # 4. Даем права на запуск скрипта сборщика
     - name: Grant execute permissions for gradlew
