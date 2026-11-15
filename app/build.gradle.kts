@@ -7,7 +7,7 @@ plugins {
 android {
     // Двойные кавычки и знак равенства строго обязательны!
     namespace = "com.kavabanga.alarmapp"
-    compileSdk = 34
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.kavabanga.alarmapp"
