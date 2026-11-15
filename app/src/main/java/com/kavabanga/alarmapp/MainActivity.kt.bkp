@@ -1,0 +1,78 @@
+
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Bundle
+import android.widget.Button
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+
+class MainActivity : AppCompatActivity() {
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            startMessagingService()
+        } else {
+            Toast.makeText(this, "Разрешение на уведомления необходимо для работы службы", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        // Простой программный UI для примера (можете заменить на свой XML layout)
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(50, 50, 50, 50)
+        }
+
+        val btnStart = Button(this).apply {
+            text = "Запустить службу"
+            setOnClickListener { checkPermissionsAndStart() }
+        }
+
+        val btnStop = Button(this).apply {
+            text = "Остановить службу"
+            setOnClickListener { stopMessagingService() }
+        }
+
+        layout.addView(btnStart)
+        layout.addView(btnStop)
+        setContentView(layout)
+    }
+
+    private fun checkPermissionsAndStart() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    startMessagingService()
+                }
+                else -> {
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        } else {
+            startMessagingService()
+        }
+    }
+
+    private fun startMessagingService() {
+        val serviceIntent = Intent(this, MessagingService::class.java)
+        ContextCompat.startForegroundService(this, serviceIntent)
+        Toast.makeText(this, "Служба запущена", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun stopMessagingService() {
+        val serviceIntent = Intent(this, MessagingService::class.java)
+        stopService(serviceIntent)
+        Toast.makeText(this, "Служба остановлена", Toast.LENGTH_SHORT).show()
+    }
+}
