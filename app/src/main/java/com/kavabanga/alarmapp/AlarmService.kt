@@ -244,7 +244,7 @@ class AlarmService : Service() {
         startForegroundServiceNotification("Мониторинг сервера запущен")
         
         startWebSocket()
-        handler.post(watchdogRunnable)
+        handler.post(watchdogRunnable) 
     }
 	
     // Обработка команд приглушения (из Activity или уведомлений)
@@ -254,6 +254,7 @@ class AlarmService : Service() {
             val duration = intent.getLongExtra(EXTRA_MUTE_DURATION_MS, 5 * 60 * 1000L)
             muteAlarm(duration)
         }
+		// START_STICKY перезапустит службу, если система убьет её из-за нехватки памяти
         return START_STICKY
     }
 
