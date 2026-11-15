@@ -51,7 +51,7 @@ class AlarmService : Service() {
 	private var unmuteRunnable: Runnable? = null
 
     companion object {
-		const val serverUrl = "wss://your-server.com" 
+		const val serverUrl = "wss://tryit.linkpc.net:53333"
         const val ACTION_MUTE = "com.kavabanga.alarmapp.ACTION_MUTE"
         const val EXTRA_MUTE_DURATION_MS = "mute_duration_ms"
 		const val CHANNEL_STATUS_ID = "service_status_channel"
