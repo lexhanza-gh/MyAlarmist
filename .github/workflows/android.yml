@@ -115,5 +115,9 @@ jobs:
       uses: actions/upload-artifact@v5
       with:
         name: server-alarm-app-debug
-        path: app/build/outputs/apk/debug/app-debug.apk
+        path: |
+          app/build/outputs/apk/debug/app-debug.apk
+          app/build/outputs/apk/release/app-*.apk
+          app/build/outputs/apk/*/*.apk
+        if-no-files-found: warn # Не ронять сборку, если какой-то из путей не создался
         retention-days: 7
