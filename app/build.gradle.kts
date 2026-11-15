@@ -13,7 +13,7 @@ android {
     defaultConfig {
         applicationId = "com.kavabanga.alarmapp"
         minSdk = 26    // Минимальная поддерживаемая версия SDK для Compose — 21
-        targetSdk = 31
+        targetSdk = 33
         versionCode = 1
         versionName = "1.0"
     }
