@@ -50,6 +50,22 @@ jobs:
     - name: Report Gradlew version
       run: ./gradlew -v
 
+
+    - name: Check Installed Android SDK Components
+      run: |
+          echo "ANDROID_HOME is set to: $ANDROID_HOME" 
+          # Use sdkmanager to list all installed packages (platforms, build-tools, NDK, etc.)
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list_installed
+
+    - name: Check Specific Folders (Alternative)
+      run: |
+          echo "=== Installed SDK Platforms ==="
+          ls -la "$ANDROID_HOME/platforms"  
+          echo "=== Installed Build Tools ==="
+          ls -la "$ANDROID_HOME/build-tools"      
+          echo "=== Platform Tools (ADB) Version ==="
+          "$ANDROID_HOME/platform-tools/adb" version
+          
     - name: Process Debug Manifest
       run: ./gradlew :app:processDebugManifest --info --stacktrace
 
