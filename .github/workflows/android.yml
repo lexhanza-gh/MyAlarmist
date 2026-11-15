@@ -103,8 +103,8 @@ jobs:
     # Собираем чистый релизный APK и подписываем его только что созданным ключом
     - name: Build Debug APK with signed Release
       run: |
-        ./gradlew assembleRelease \
-          -Pandroid.injected.signing.store.file=release-key.jks \
+        ./gradlew clean assembleRelease \
+          -Pandroid.injected.signing.store.file=app/release-key.jks \
           -Pandroid.injected.signing.store.password=temp_password123 \
           -Pandroid.injected.signing.key.alias=my-alias \
           -Pandroid.injected.signing.key.password=temp_password123
