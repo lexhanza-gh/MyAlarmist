@@ -24,7 +24,12 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-
+    # Добавлено для исправления зависимостей, при использовании Jetpack Compose
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        packages: 'platforms;android-37 build-tools;36.0.0'
+        
     # 3. Генерируем Gradle Wrapper, если его нет в репозитории
     - name: Generate Gradle Wrapper
       run: |
