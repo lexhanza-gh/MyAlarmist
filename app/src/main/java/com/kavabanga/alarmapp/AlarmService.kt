@@ -128,7 +128,7 @@ class AlarmService : Service() {
         val alarmNotification = NotificationCompat.Builder(this, CHANNEL_ALARM_ID)
             .setContentTitle(alarmTitle)
             .setContentText(alarmMessage)
-            .setSmallIcon(android.R.drawable.android.R.drawable.ic_dialog_alert) // Замените на иконку тревоги
+            .setSmallIcon(android.R.drawable.ic_dialog_alert) // Замените на иконку тревоги
             .setPriority(NotificationCompat.PRIORITY_HIGH) // Для Android 7.1 и ниже
             .setAutoCancel(true)// Уведомление исчезнет, если на него нажать
             // Добавляем кнопку: иконка (опционально), Текст кнопки, само действие
