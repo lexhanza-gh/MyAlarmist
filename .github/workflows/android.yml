@@ -81,11 +81,34 @@ jobs:
           app/build/intermediates/packaged_manifests/**/AndroidManifest.xml
         if-no-files-found: warn # Не ронять сборку, если какой-то из путей не создался
 
+    # Компилируем проект
+#    - name: Build Debug APK
+#      run: ./gradlew assembleDebug
+#     run: ./gradlew clean assembleDebug  # очистка кэша перед сборкой
 
 
-    # 5. Компилируем проект
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug
+    # GitHub сам генерирует уникальный ключ подписи приложения прямо в процессе сборки
+    - name: Generate Keystore on the fly
+      run: |
+        keytool -genkey -v \
+          -keystore app/release-key.jks \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -alias my-alias \
+          -storepass temp_password123 \
+          -keypass temp_password123 \
+          -dname "CN=AlarmApp, O=Kavabanga, C=RU"
+          
+    # Собираем чистый релизный APK и подписываем его только что созданным ключом
+    - name: Build Debug APK with signed Release
+      run: |
+        ./gradlew assembleRelease \
+          -Pandroid.injected.signing.store.file=release-key.jks \
+          -Pandroid.injected.signing.store.password=temp_password123 \
+          -Pandroid.injected.signing.key.alias=my-alias \
+          -Pandroid.injected.signing.key.password=temp_password123
+
 
     # 6. Сохраняем готовый файл (обновлено до v5 для стабильной работы)
     - name: Upload APK Artifact
