@@ -91,7 +91,7 @@ jobs:
     - name: Generate Keystore on the fly
       run: |
         keytool -genkey -v \
-          -keystore app/release-key.jks \
+          -keystore /home/runner/release-key.jks \
           -keyalg RSA \
           -keysize 2048 \
           -validity 10000 \
@@ -104,7 +104,7 @@ jobs:
     - name: Build Debug APK with signed Release
       run: |
        ./gradlew clean assembleRelease \
-         -Pandroid.injected.signing.store.file=../../../app/release-key.jks \
+         -Pandroid.injected.signing.store.file=/home/runner/release-key.jks \
          -Pandroid.injected.signing.store.password=temp_password123 \
          -Pandroid.injected.signing.key.alias=my-alias \
          -Pandroid.injected.signing.key.password=temp_password123
