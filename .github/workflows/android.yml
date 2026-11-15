@@ -47,6 +47,9 @@ jobs:
     - name: Grant execute permissions for gradlew
       run: chmod +x gradlew
 
+    - name: Report Gradlew version
+      run: ./gradlew -v
+
     - name: Process Debug Manifest
       run: ./gradlew :app:processDebugManifest --info --stacktrace
 
