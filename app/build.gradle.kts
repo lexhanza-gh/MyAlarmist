@@ -1,7 +1,8 @@
 plugins {
     id("com.android.application")
+// deprecated in AGP 9 (android gradle plugin)
 //    id("org.jetbrains.kotlin.android")
-//    id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
@@ -33,9 +34,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+  // deprecated in AGP 9 (android gradle plugin)
+  //  kotlinOptions {
+  //      jvmTarget = "17"
+  //  }
 }
 
 dependencies {
