@@ -54,12 +54,27 @@ class AlarmService : Service() {
 		const val serverUrl = "wss://tryit.linkpc.net:53333"
         const val ACTION_MUTE = "com.kavabanga.alarmapp.ACTION_MUTE"
         const val ACTION_STOP_SOUND = "com.kavabanga.alarmapp.ACTION_STOP_SOUND"
+        // Команда для полной остановки службы мониторинга
+        const val ACTION_STOP_SERVICE = "com.kavabanga.alarmapp.ACTION_STOP_SERVICE"
+        // Команда для повторного подключения к серверу без перезапуска watchdog
+        const val ACTION_RESTART_SERVICE = "com.kavabanga.alarmapp.ACTION_RESTART_SERVICE"
         const val EXTRA_MUTE_DURATION_MS = "mute_duration_ms"
 		const val CHANNEL_STATUS_ID = "service_status_channel"
         const val CHANNEL_ALARM_ID = "alarm_alert_channel"
         const val FOREGROUND_NOTIFICATION_ID = 1
         const val ALARM_NOTIFICATION_ID = 2
         private const val TAG = "AlarmService"
+
+        // Остановить службу сообщений (мониторинга) из Activity или другого компонента
+        fun stop(context: Context) {
+            context.stopService(Intent(context, AlarmService::class.java))
+        }
+
+        // Запустить службу, если она остановлена, или переподключить WebSocket, если она уже работает
+        fun restart(context: Context) {
+            val intent = Intent(context, AlarmService::class.java).setAction(ACTION_RESTART_SERVICE)
+            ContextCompat.startForegroundService(context, intent)
+        }
     }
 
 
@@ -248,17 +263,28 @@ class AlarmService : Service() {
         handler.post(watchdogRunnable) 
     }
 	
-    // Обработка команд приглушения (из Activity или уведомлений)
+    // Обработка команд приглушения, остановки и перезапуска службы
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_MUTE) {
-            // Получаем интервал приглушения (по умолчанию 5 минут)
-            val duration = intent.getLongExtra(EXTRA_MUTE_DURATION_MS, 5 * 60 * 1000L)
-            muteAlarm(duration)
-        }
-		if (intent?.action == ACTION_STOP_SOUND) {
-            // Просто выключаем сирену, но не включаем режим тишины на будущее
-            stopAlarmSound()
-            //manager.cancel(ALARM_NOTIFICATION_ID)
+        when (intent?.action) {
+            ACTION_MUTE -> {
+                // Получаем интервал приглушения (по умолчанию 5 минут)
+                val duration = intent.getLongExtra(EXTRA_MUTE_DURATION_MS, 5 * 60 * 1000L)
+                muteAlarm(duration)
+            }
+            ACTION_STOP_SOUND -> {
+                // Просто выключаем сирену, но не включаем режим тишины на будущее
+                stopAlarmSound()
+                //manager.cancel(ALARM_NOTIFICATION_ID)
+            }
+            ACTION_STOP_SERVICE -> {
+                // Полностью останавливаем службу и закрываем соединение в onDestroy()
+                stopSelfResult(startId)
+                return START_NOT_STICKY
+            }
+            ACTION_RESTART_SERVICE -> {
+                // Повторно подключаемся к серверу, не создавая второй watchdog
+                restartMessageConnection()
+            }
         }
 		// START_STICKY перезапустит службу, если система убьет её из-за нехватки памяти
         return START_STICKY
@@ -276,6 +302,14 @@ class AlarmService : Service() {
             // Продолжаем проверять каждые 5 секунд
             handler.postDelayed(this, 5000) 
         }
+    }
+
+    // Закрывает текущее соединение и открывает новое, не перезапуская службу целиком
+    private fun restartMessageConnection() {
+        webSocket?.cancel()
+        webSocket = null
+        lastPingTime = System.currentTimeMillis()
+        startWebSocket()
     }
 
     private fun startWebSocket() {
@@ -319,7 +353,10 @@ class AlarmService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(watchdogRunnable)
+        // Отменяем таймер выхода из режима тишины при завершении службы
+        unmuteRunnable?.let { handler.removeCallbacks(it) }
         webSocket?.close(1000, "Service destroyed")
+        webSocket = null
         stopAlarmSound()
         super.onDestroy()
     }
