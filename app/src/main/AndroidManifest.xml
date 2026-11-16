@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Для Android 14+ требуется указать тип сервиса -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
           <!-- 
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
           -->
@@ -26,6 +28,14 @@
         <receiver
             android:name=".AlarmMuteReceiver"
             android:exported="false" />
-            
+        <receiver 
+          android:name=".BootReceiver"
+          android:enabled="true"
+          android:exported="false" >
+          <intent-filter>
+            <action android:name="android.intent.action.BOOT_COMPLETED" />
+            <action android:name="android.intent.action.QUICKBOOT_POWERON" /> <!-- Для некоторых старых/HTC устройств -->
+          </intent-filter>
+        </receiver>
     </application>
 </manifest>
