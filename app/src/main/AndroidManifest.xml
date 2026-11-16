@@ -19,15 +19,19 @@
         android:usesCleartextTraffic="true" >
         <!-- android:usesCleartextTraffic="true"  =>  Enables ws:// and http:// globally -->
 
+        <!-- Фоновый сервис -->
         <service
             android:name=".AlarmService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="remoteMessaging" />
-            
+
+        <!-- Приемник для кнопки "Приглушить" в пуше -->
         <receiver
             android:name=".AlarmMuteReceiver"
             android:exported="false" />
+
+        <!-- Приемник для автозапуска при включении телефона -->
         <receiver 
           android:name=".BootReceiver"
           android:enabled="true"
