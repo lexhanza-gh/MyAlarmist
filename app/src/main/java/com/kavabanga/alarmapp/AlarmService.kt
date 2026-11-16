@@ -1,23 +1,23 @@
 package com.kavabanga.alarmapp
 
 import android.Manifest
+import android.app.*
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Intent
 import android.content.Context
 import android.content.pm.PackageManager
+import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
-import android.util.Log
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.media.AudioAttributes
-import android.app.*
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
+import android.util.Log
 import okhttp3.*
 
 /*
