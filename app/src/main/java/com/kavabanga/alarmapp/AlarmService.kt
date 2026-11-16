@@ -53,6 +53,7 @@ class AlarmService : Service() {
     companion object {
 		const val serverUrl = "wss://tryit.linkpc.net:53333"
         const val ACTION_MUTE = "com.kavabanga.alarmapp.ACTION_MUTE"
+        const val ACTION_STOP_SOUND = "com.kavabanga.alarmapp.ACTION_STOP_SOUND"
         const val EXTRA_MUTE_DURATION_MS = "mute_duration_ms"
 		const val CHANNEL_STATUS_ID = "service_status_channel"
         const val CHANNEL_ALARM_ID = "alarm_alert_channel"
@@ -253,6 +254,11 @@ class AlarmService : Service() {
             // Получаем интервал приглушения (по умолчанию 5 минут)
             val duration = intent.getLongExtra(EXTRA_MUTE_DURATION_MS, 5 * 60 * 1000L)
             muteAlarm(duration)
+        }
+		if (intent?.action == ACTION_STOP_SOUND) {
+            // Просто выключаем сирену, но не включаем режим тишины на будущее
+            stopAlarmSound()
+            //manager.cancel(ALARM_NOTIFICATION_ID)
         }
 		// START_STICKY перезапустит службу, если система убьет её из-за нехватки памяти
         return START_STICKY
